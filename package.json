@@ -1,0 +1,13 @@
+{
+  "name": "wc3-discord-bot",
+  "version": "1.0.0",
+  "description": "Bot para trackear partidas de Warcraft 3",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "discord.js": "^14.14.1"
+  }
+}
