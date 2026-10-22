@@ -112,6 +112,7 @@ function obtenerNombreLobby(name) {
     if (name == null) return 'Nombre no encontrado';
 
     const noNumber = name.indexOf(" ");
+    if (noNumber == -1) return "Ladder match"
     return name.slice(noNumber, name.length)
 }
 
