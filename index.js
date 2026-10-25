@@ -132,27 +132,15 @@ async function verificarPartidas() {
         const ahora = Date.now();
 
         for (const [nombre, old] of jugadoresEnCola.entries()) {
-            try {
-                const msg = await canal.messages.fetch(old.messageId);
-                await msg.delete();
-                console.log(`Mensaje borrado para la cola de: ${nombre}`);
-            } catch (err) {
-                console.error(
-                    `No se pudo eliminar el mensaje de la cola de ${nombre}:`,
-                    err.message
-                );
-            } finally {
-                jugadoresEnCola.delete(nombre);
-            }
-
-
+            old.refreshed = false;
         }
 
         for (const jugador of playersQueue) {
             const nombre = jugador.player;
             const tipo = jugador.game_type;
             let raceEmoji;
-            switch (jugador.race) {
+            if (!jugadoresEnCola.has(nombre)) {
+                switch (jugador.race) {
                 case 1: // hu
                     raceEmoji = "<:PurgaFeliz:959908470797242368>";
                     break;
@@ -195,23 +183,44 @@ async function verificarPartidas() {
                     { name: '🏆 Modo', value: tipoValue, inline: true },
                 )
                 .setTimestamp();
+            try {
+                const nuevoMensaje = await canal.send({ embeds: [embed] });
 
-
-            if (!jugadoresEnCola.has(nombre)) {
-                try {
-                    const nuevoMensaje = await canal.send({ embeds: [embed] });
-
-                    jugadoresEnCola.set(nombre, {
-                        datos: jugador,
-                        messageId: nuevoMensaje.id,
-                    });
-                    console.log(`Mensaje creado para la cola de: ${nombre}`);
-                } catch (err) {
-                    console.error('Error al enviar el nuevo mensaje a Discord:', err);
-                }
+                jugadoresEnCola.set(nombre, {
+                    datos: jugador,
+                    messageId: nuevoMensaje.id,
+                    refreshed: true
+                });
+                console.log(`Mensaje creado para la cola de: ${nombre}`);
+            } catch (err) {
+                console.error('Error al enviar el nuevo mensaje a Discord:', err);
             }
+            
+        } else {
+            jugadoresEnCola.set(nombre, {
+                    datos: jugador,
+                    messageId: jugadoresEnCola.get(nombre).messageId,
+                    refreshed: true
+                });
+        }
         }
 
+        for (const [nombre, old] of jugadoresEnCola.entries()) {
+            try {
+                if (old.refreshed==false) {
+                    const msg = await canal.messages.fetch(old.messageId);
+                    await msg.delete();
+                    console.log(`Mensaje borrado para la cola de: ${nombre}`);
+                    jugadoresEnCola.delete(nombre);
+                }
+                
+            } catch (err) {
+                console.error(
+                    `No se pudo eliminar el mensaje de la cola de ${nombre}:`,
+                    err.message
+                );
+            }
+        }
 
         // 2. Procesar o actualizar las partidas que vienen del endpoint
         for (const partida of partidasServidor) {
